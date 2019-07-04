@@ -1,4 +1,4 @@
-import * as express from 'express';
+import * as fastify from 'fastify';
 import i18next from 'i18next';
 
 declare global {
@@ -12,10 +12,10 @@ declare global {
   }
 }
 
-declare module 'i18next-express-middleware' {
+declare module 'i18next-fastify-middleware' {
   type I18next = i18next.i18n;
-  type IgnoreRoutesFunction = (req: express.Request, res: express.Response, options: HandleOptions, i18next: I18next) => boolean;
-  type App = express.Application | express.Router;
+  type IgnoreRoutesFunction = (req: fastify.FastifyRequest, res: fastify.FastifyReply<any>, options: HandleOptions, i18next: I18next) => boolean;
+  type App = fastify.FastifyMiddleware;
 
   interface HandleOptions {
     ignoreRoutes?: string[] | IgnoreRoutesFunction;
@@ -32,11 +32,11 @@ declare module 'i18next-express-middleware' {
     nsParam?: string;
   }
 
-  export function handle(i18next: I18next, options?: HandleOptions): express.Handler;
-  export function getResourcesHandler(i18next: I18next, options?: GetResourcesHandlerOptions): express.Handler;
-  export function missingKeyHandler(i18next: I18next, options?: MissingKeyHandlerOptions): express.Handler;
-  export function addRoute(i18next: I18next, route: string, lngs: string[], app: App, verb: string, fc: express.RequestHandler): void;
-  export function addRoute(i18next: I18next, route: string, lngs: string[], app: App, fc: express.RequestHandler): void;
+  export function handle(i18next: I18next, options?: HandleOptions): fastify.RequestHandler;
+  export function getResourcesHandler(i18next: I18next, options?: GetResourcesHandlerOptions): fastify.RequestHandler;
+  export function missingKeyHandler(i18next: I18next, options?: MissingKeyHandlerOptions): fastify.RequestHandler;
+  export function addRoute(i18next: I18next, route: string, lngs: string[], app: App, verb: string, fc: fastify.RequestHandler): void;
+  export function addRoute(i18next: I18next, route: string, lngs: string[], app: App, fc: fastify.RequestHandler): void;
 
   // LanguageDetector
   type LanguageDetectorServices = any;
@@ -60,9 +60,9 @@ declare module 'i18next-express-middleware' {
   }
   interface LanguageDetectorInterface {
     name: string;
-    lookup: (req: express.Request, res: express.Response, options?: LanguageDetectorInterfaceOptions) => string | string[];
+    lookup: (req: fastify.FastifyRequest, res: fastify.FastifyReply<any>, options?: LanguageDetectorInterfaceOptions) => string | string[];
 
-    cacheUserLanguage?: (req: express.Request, res: express.Response, lng: string, options?: object) => void;
+    cacheUserLanguage?: (req: fastify.FastifyRequest, res: fastify.FastifyReply<any>, lng: string, options?: object) => void;
   }
 
   export class LanguageDetector {
@@ -72,7 +72,7 @@ declare module 'i18next-express-middleware' {
     init(services: LanguageDetectorServices, options?: LanguageDetectorOptions, allOptions?: LanguageDetectorAllOptions): void;
     init(options?: LanguageDetectorOptions, allOptions?: LanguageDetectorAllOptions): void;
     addDetector(detector: LanguageDetectorInterface): void;
-    detect(req: express.Request, res: express.Response, detectionOrder: LanguageDetectorOrder): void;
-    cacheUserLanguage(req: express.Request, res: express.Response, lng: string, caches: LanguageDetectorCaches): void;
+    detect(req: fastify.FastifyRequest, res: fastify.FastifyReply<any>, detectionOrder: LanguageDetectorOrder): void;
+    cacheUserLanguage(req: fastify.FastifyRequest, res: fastify.FastifyReply<any>, lng: string, caches: LanguageDetectorCaches): void;
   }
 }

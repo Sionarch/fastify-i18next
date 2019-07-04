@@ -1,81 +1,97 @@
 import * as utils from './utils';
 import LD from './LanguageDetector';
+import fp from 'fastify-plugin';
 
-export var LanguageDetector = LD;
+// export var LanguageDetector = LD;
 
-export function handle(i18next, options = {}) {
-  return function i18nextMiddleware(req, res, next) {
+function fastifyPlugin (instance, options, next) {
+  const i18next = options.i18next;
+
+  // i18next.use(LD).init({
+  //   preload: options.preload || [],
+  // });
+
+  instance.addHook('preHandler', (request, reply, done) => {
+    return new Promise(resolve => {
     if (typeof options.ignoreRoutes === 'function') {
-      if (options.ignoreRoutes(req, res, options, i18next)) {
-        return next();
+      if (options.ignoreRoutes(request, reply, options, i18next)) {
+        return resolve(done());
       }
     } else {
       let ignores = options.ignoreRoutes instanceof Array&&options.ignoreRoutes || [];
       for (var i=0;i< ignores.length;i++){
-        if (req.path.indexOf(ignores[i]) > -1) return next();
+        if (request.path.indexOf(ignores[i]) > -1) return resolve(done());
       }
     }
 
     let i18n = i18next.cloneInstance({ initImmediate: false });
     i18n.on('languageChanged', (lng) => { // Keep language in sync
-        req.language = req.locale = req.lng = lng;
+        request.language = request.locale = request.lng = lng;
 
-        if (res.locals) {
-          res.locals.language = lng;
-          res.locals.languageDir = i18next.dir(lng);
+        if (reply.locals) {
+          reply.locals.language = lng;
+          reply.locals.languageDir = i18next.dir(lng);
         }
 
-        if (!res.headersSent) {
-          res.set('Content-Language', lng);
-        }
+        // if (!reply.headersSent) {
+        //   reply.set('Content-Language', lng);
+        // }
 
-        req.languages = i18next.services.languageUtils.toResolveHierarchy(lng);
+        request.languages = i18next.services.languageUtils.toResolveHierarchy(lng);
 
         if (i18next.services.languageDetector) {
-          i18next.services.languageDetector.cacheUserLanguage(req, res, lng);
+          i18next.services.languageDetector.cacheUserLanguage(request, reply, lng);
         }
     });
 
-    let lng = req.lng;
-    if (!req.lng && i18next.services.languageDetector) lng = i18next.services.languageDetector.detect(req, res);
+    let lng = request.lng;
+    if (!request.lng && i18next.services.languageDetector) lng = i18next.services.languageDetector.detect(request, reply);
 
     // set locale
-    req.language = req.locale = req.lng = lng;
-    if (!res.headersSent) {
-      res.set('Content-Language', lng);
-    }
-    req.languages = i18next.services.languageUtils.toResolveHierarchy(lng);
+    request.language = request.locale = request.lng = lng;
+    // if (!reply.headersSent) {
+    //   reply.set('Content-Language', lng);
+    // }
+    request.languages = i18next.services.languageUtils.toResolveHierarchy(lng);
 
     // trigger sync to instance - might trigger async load!
     i18n.changeLanguage(lng || i18next.options.fallbackLng[0]);
 
-    if(req.i18nextLookupName === 'path' && options.removeLngFromUrl) {
-      req.url = utils.removeLngFromUrl(req.url, i18next.services.languageDetector.options.lookupFromPathIndex);
+    if(request.i18nextLookupName === 'path' && options.removeLngFromUrl) {
+      request.url = utils.removeLngFromUrl(request.url, i18next.services.languageDetector.options.lookupFromPathIndex);
     }
 
     let t = i18n.t.bind(i18n);
     let exists = i18n.exists.bind(i18n);
 
-    // assert for req
-    req.i18n = i18n;
-    req.t = t;
+    // assert for request
+    request.i18n = i18n;
+    request.t = t;
 
     // assert for res -> template
-    if (res.locals) {
-      res.locals.t = t;
-      res.locals.exists = exists;
-      res.locals.i18n = i18n;
-      res.locals.language = lng;
-      res.locals.languageDir = i18next.dir(lng);
+    if (reply.locals) {
+      reply.locals.t = t;
+      reply.locals.exists = exists;
+      reply.locals.i18n = i18n;
+      reply.locals.language = lng;
+      reply.locals.languageDir = i18next.dir(lng);
     }
 
-    if (i18next.services.languageDetector) i18next.services.languageDetector.cacheUserLanguage(req, res, lng);
+    if (i18next.services.languageDetector) i18next.services.languageDetector.cacheUserLanguage(request, reply, lng);
 
     // load resources
-    if (!req.lng) return next();
-    i18next.loadLanguages(req.lng, function() {
-      next();
+    if (!request.lng) return resolve(done());
+    return i18next.loadLanguages(request.lng)
+    .then(() => done());
     });
+  });
+
+  next();
+}
+
+export function handle(i18next, options = {}) {
+  return function i18nextMiddleware(req, res, next) {
+
   };
 };
 
@@ -163,10 +179,20 @@ export function addRoute(i18next, route, lngs, app, verb, fc) {
   }
 };
 
-export default {
-  handle,
-  getResourcesHandler,
-  missingKeyHandler,
-  addRoute,
-  LanguageDetector
-}
+module.exports = {
+  plugin: fp(fastifyPlugin),
+  LanguageDetector: LD,
+};
+
+// export default fp(fastifyPlugin, {
+//   fastify: '>=2.0.0',
+//   name: 'i18next-fastify-plugin'
+// })
+
+// export default {
+//   handle,
+//   getResourcesHandler,
+//   missingKeyHandler,
+//   addRoute,
+//   LanguageDetector
+// }
