@@ -1,124 +1,57 @@
 # Introduction
 
-This is a middleware to use i18next in express.js.
+This is a plugin to use i18next in Fastify.
 
 # Getting started
 
-Source can be loaded via [npm](https://www.npmjs.com/package/i18next-express-middleware).
+Source can be loaded via [npm](https://www.npmjs.com/package/fastify-i18next).
 
 ```
 # npm package
-$ npm install i18next-express-middleware
+$ npm install fastify-i18next
 ```
 
 ## wire up i18next to request object
 
 ```js
 var i18next = require("i18next");
-var middleware = require("i18next-express-middleware");
-var express = require("express");
+var fastifyi18next = require("fastify-i18next");
+var fastify = require("fastify")({ logger: true });
 
-i18next.use(middleware.LanguageDetector).init({
-  preload: ["en", "de", "it"],
+i18next.use(fastifyi18next.LanguageDetector).init({
+  preload: ["en", "de"],
+  resources: {
+    en: {
+      translation: {
+        "title": "Hello World!"
+      }
+    },
+    de: {
+      translation: {
+        "title": "Hallo Welt!"
+      }
+    }
+  },
   ...otherOptions
 });
 
-var app = express();
-app.use(
-  middleware.handle(i18next, {
-    ignoreRoutes: ["/foo"], // or function(req, res, options, i18next) { /* return true to ignore */ }
-    removeLngFromUrl: false
-  })
-);
+fastify.register(fastifyi18next.plugin, { i18next });
 
-// in your request handler
-app.get("myRoute", function(req, res) {
-  var lng = req.language; // 'de-CH'
-  var lngs = req.languages; // ['de-CH', 'de', 'en']
-  req.i18n.changeLanguage("en"); // will not load that!!! assert it was preloaded
-
-  var exists = req.i18n.exists("myKey");
-  var translation = req.t("myKey");
+fastify.get('/', async (request, reply) => {
+  return request.t('title');
 });
 
-// in your views, eg. in pug (ex. jade)
-div = t("myKey");
-```
+const start = async () => {
+  try {
+    await fastify.listen(3000)
+    fastify.log.info(`server listening on ${fastify.server.address().port}`)
+  } catch (err) {
+    fastify.log.error(err)
+    process.exit(1)
+  }
+}
+start()
 
-## add routes
-
-```js
-// missing keys; make sure the body is parsed (i.e. with [body-parser](https://github.com/expressjs/body-parser#bodyparserjsonoptions))
-app.post("/locales/add/:lng/:ns", middleware.missingKeyHandler(i18next));
-
-// multiload backend route
-app.get("/locales/resources.json", middleware.getResourcesHandler(i18next));
-```
-
-## add localized routes
-
-You can add your routes directly to the express app
-
-```js
-var express = require("express"),
-  app = express(),
-  i18next = require("i18next"),
-  FilesystemBackend = require("i18next-node-fs-backend"),
-  i18nextMiddleware = require("i18next-express-middleware"),
-  port = 3000;
-
-i18next
-  .use(i18nextMiddleware.LanguageDetector)
-  .use(FilesystemBackend)
-  .init({ preload: ["en", "de", "it"], ...otherOptions }, function() {
-    i18nextMiddleware.addRoute(
-      i18next,
-      "/:lng/key-to-translate",
-      ["en", "de", "it"],
-      app,
-      "get",
-      function(req, res) {
-        //endpoint function
-      }
-    );
-  });
-app.use(i18nextMiddleware.handle(i18next));
-app.listen(port, function() {
-  console.log("Server listening on port", port);
-});
-```
-
-or to an express router
-
-```js
-var express = require("express"),
-  app = express(),
-  i18next = require("i18next"),
-  FilesystemBackend = require("i18next-node-fs-backend"),
-  i18nextMiddleware = require("i18next-express-middleware"),
-  router = require("express").Router(),
-  port = 3000;
-
-i18next
-  .use(i18nextMiddleware.LanguageDetector)
-  .use(FilesystemBackend)
-  .init({ preload: ["en", "de", "it"], ...otherOptions }, function() {
-    i18nextMiddleware.addRoute(
-      i18next,
-      "/:lng/key-to-translate",
-      ["en", "de", "it"],
-      router,
-      "get",
-      function(req, res) {
-        //endpoint function
-      }
-    );
-    app.use("/", router);
-  });
-app.use(i18nextMiddleware.handle(i18next));
-app.listen(port, function() {
-  console.log("Server listening on port", port);
-});
 ```
 
 ## language detection
@@ -135,9 +68,9 @@ Wiring up:
 
 ```js
 var i18next = require("i18next");
-var middleware = require("i18next-express-middleware");
+var fastifyi18next = require("fastify-i18next");
 
-i18next.use(middleware.LanguageDetector).init(i18nextOptions);
+i18next.use(fastifyi18next.LanguageDetector).init(i18nextOptions);
 ```
 
 As with all modules you can either pass the constructor function (class) to the i18next.use or a concrete instance.
@@ -173,9 +106,9 @@ Options can be passed in:
 
 ```js
 var i18next = require("i18next");
-var middleware = require("i18next-express-middleware");
+var fastifyi18next = require("fastify-i18next");
 
-i18next.use(middleware.LanguageDetector).init({
+i18next.use(fastifyi18next.LanguageDetector).init({
   detection: options
 });
 ```
@@ -183,16 +116,16 @@ i18next.use(middleware.LanguageDetector).init({
 on construction:
 
 ```js
-var middleware = require("i18next-express-middleware");
-var lngDetector = new middleware.LanguageDetector(null, options);
+var fastifyi18next = require("fastify-i18next");
+var lngDetector = new fastifyi18next.LanguageDetector(null, options);
 ```
 
 via calling init:
 
 ```js
-var middleware = require("i18next-express-middleware");
+var fastifyi18next = require("fastify-i18next");
 
-var lngDetector = new middleware.LanguageDetector();
+var lngDetector = new fastifyi18next.LanguageDetector();
 lngDetector.init(options);
 ```
 
@@ -222,22 +155,12 @@ module.exports {
 
 ```js
 var i18next = require("i18next");
-var middleware = require("i18next-express-middleware");
+var fastifyi18next = require("fastify-i18next");
 
-var lngDetector = new middleware.LanguageDetector();
+var lngDetector = new fastifyi18next.LanguageDetector();
 lngDetector.addDetector(myDetector);
 
 i18next.use(lngDetector).init({
   detection: options
 });
 ```
-
----
-
-<h3 align="center">Gold Sponsors</h3>
-
-<p align="center">
-  <a href="https://locize.com/" target="_blank">
-    <img src="https://raw.githubusercontent.com/i18next/i18next/master/assets/locize_sponsor_240.gif" width="240px">
-  </a>
-</p>
