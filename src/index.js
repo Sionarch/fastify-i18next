@@ -1,26 +1,19 @@
 import * as utils from './utils';
-import LD from './LanguageDetector';
+import LanguageDetector from './LanguageDetector';
 import fp from 'fastify-plugin';
-
-// export var LanguageDetector = LD;
 
 function fastifyPlugin (instance, options, next) {
   const i18next = options.i18next;
 
-  // i18next.use(LD).init({
-  //   preload: options.preload || [],
-  // });
-
-  instance.addHook('preHandler', (request, reply, done) => {
-    return new Promise(resolve => {
+  instance.addHook('preHandler', async (request, reply, next) => {
     if (typeof options.ignoreRoutes === 'function') {
       if (options.ignoreRoutes(request, reply, options, i18next)) {
-        return resolve(done());
+        return;
       }
     } else {
       let ignores = options.ignoreRoutes instanceof Array&&options.ignoreRoutes || [];
       for (var i=0;i< ignores.length;i++){
-        if (request.path.indexOf(ignores[i]) > -1) return resolve(done());
+        if (request.path.indexOf(ignores[i]) > -1) return;
       }
     }
 
@@ -33,9 +26,7 @@ function fastifyPlugin (instance, options, next) {
           reply.locals.languageDir = i18next.dir(lng);
         }
 
-        // if (!reply.headersSent) {
-        //   reply.set('Content-Language', lng);
-        // }
+        reply.header('Content-Language', lng);
 
         request.languages = i18next.services.languageUtils.toResolveHierarchy(lng);
 
@@ -49,9 +40,7 @@ function fastifyPlugin (instance, options, next) {
 
     // set locale
     request.language = request.locale = request.lng = lng;
-    // if (!reply.headersSent) {
-    //   reply.set('Content-Language', lng);
-    // }
+    reply.header('Content-Language', lng);
     request.languages = i18next.services.languageUtils.toResolveHierarchy(lng);
 
     // trigger sync to instance - might trigger async load!
@@ -80,20 +69,14 @@ function fastifyPlugin (instance, options, next) {
     if (i18next.services.languageDetector) i18next.services.languageDetector.cacheUserLanguage(request, reply, lng);
 
     // load resources
-    if (!request.lng) return resolve(done());
-    return i18next.loadLanguages(request.lng)
-    .then(() => done());
-    });
+    if (!request.lng) return;
+    await i18next.loadLanguages(request.lng)
+
+    return;
   });
 
-  next();
+  return next();
 }
-
-export function handle(i18next, options = {}) {
-  return function i18nextMiddleware(req, res, next) {
-
-  };
-};
 
 export function getResourcesHandler(i18next, options) {
   options = options || {};
@@ -149,50 +132,12 @@ export function missingKeyHandler(i18next, options) {
   };
 };
 
-export function addRoute(i18next, route, lngs, app, verb, fc) {
-  if (typeof verb === 'function') {
-    fc = verb;
-    verb = 'get';
-  }
-
-  // Combine `fc` and possible more callbacks to one array
-  var callbacks = [fc].concat(Array.prototype.slice.call(arguments, 6));
-
-  for (var i = 0, li = lngs.length; i < li; i++) {
-    var parts = String(route).split('/');
-    var locRoute = [];
-    for (var y = 0, ly = parts.length; y < ly; y++) {
-      var part = parts[y];
-      // if the route includes the parameter :lng
-      // this is replaced with the value of the language
-      if (part === ':lng') {
-        locRoute.push(lngs[i]);
-      } else if (part.indexOf(':') === 0 || part === '') {
-        locRoute.push(part);
-      } else {
-        locRoute.push(i18next.t(part, { lng: lngs[i] }));
-      }
-    }
-
-    var routes = [locRoute.join('/')];
-    app[verb || 'get'].apply(app, routes.concat(callbacks));
-  }
-};
-
 module.exports = {
-  plugin: fp(fastifyPlugin),
-  LanguageDetector: LD,
+  plugin: fp(fastifyPlugin, {
+    fastify: '>=2.0.0',
+    name: 'i18next-fastify-plugin'
+  }),
+  LanguageDetector,
+  // getResourcesHandler,
+  // missingKeyHandler
 };
-
-// export default fp(fastifyPlugin, {
-//   fastify: '>=2.0.0',
-//   name: 'i18next-fastify-plugin'
-// })
-
-// export default {
-//   handle,
-//   getResourcesHandler,
-//   missingKeyHandler,
-//   addRoute,
-//   LanguageDetector
-// }

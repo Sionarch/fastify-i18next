@@ -1,14 +1,11 @@
-const express = require('express');
+const fastify = require('fastify')({ logger: true });
 const i18next = require('i18next');
-const i18nextMiddleware = require('i18next-express-middleware');
+const fastifyi18next = require('fastify-i18next');
 const Backend = require('i18next-node-fs-backend');
-
-const app = express();
-const port = process.env.PORT || 8080;
 
 i18next
   .use(Backend)
-  .use(i18nextMiddleware.LanguageDetector)
+  .use(fastifyi18next.LanguageDetector)
   .init({
     backend: {
       loadPath: __dirname + '/locales/{{lng}}/{{ns}}.json',
@@ -19,12 +16,19 @@ i18next
     saveMissing: true
   });
 
-app.use(i18nextMiddleware.handle(i18next));
+fastify.register(fastifyi18next.plugin, { i18next });
 
-app.get('/', (req, res) => {
-  res.send(req.t('home.title'));
+fastify.get('/', async (request, reply) => {
+  return request.t('home.title');
 });
 
-app.listen(port, (err) => {
-  console.log(`Server is listening on port ${port}`);
-});
+const start = async () => {
+  try {
+    await fastify.listen(process.env.PORT || 8080)
+    fastify.log.info(`server listening on ${fastify.server.address().port}`)
+  } catch (err) {
+    fastify.log.error(err)
+    process.exit(1)
+  }
+}
+start()

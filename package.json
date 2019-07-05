@@ -1,6 +1,6 @@
 {
   "name": "fastify-i18next",
-  "version": "1.0.0",
+  "version": "0.5.0",
   "description": "i18next plugin for fastify, based on i18next-express-middleware",
   "main": "./lib/index.js",
   "types": "./index.d.ts",
@@ -16,18 +16,19 @@
     "url": "git://github.com/Sionarch/fastify-i18next.git"
   },
   "dependencies": {
-    "cookies": "0.7.1",
+    "@babel/runtime": "^7.5.0",
+    "cookies": "0.7.3",
     "fastify-plugin": "^1.6.0"
   },
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-core": "^6.26.3",
-    "babel-eslint": "5.0.0",
-    "babel-preset-es2015": "6.3.13",
-    "babel-preset-stage-0": "6.5.0",
-    "eslint": "2.7.0",
+    "@babel/cli": "^7.5.0",
+    "@babel/core": "^7.5.0",
+    "@babel/plugin-transform-runtime": "^7.5.0",
+    "@babel/preset-env": "^7.5.0",
+    "babel-eslint": "10.0.2",
+    "eslint": "6.0.1",
     "fastify": "^2.6.0",
-    "i18next": "13.0.1"
+    "i18next": "17.0.6"
   },
   "scripts": {
     "transpile": "babel src -d lib",

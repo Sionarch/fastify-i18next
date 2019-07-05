@@ -1,15 +1,14 @@
 {
-  "name": "i18next-express-basic",
+  "name": "fastify-i18next-basic",
   "version": "1.0.0",
-  "description": "Node Express server with i18next.",
+  "description": "Node Fastify server with i18next.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "express": "4.15.3",
-    "i18next": "8.3.0",
-    "i18next-express-middleware": "1.0.5",
-    "i18next-node-fs-backend": "1.0.0"
+    "fastify": "^2.6.0",
+    "i18next": "17.0.6",
+    "i18next-node-fs-backend": "2.1.3"
   }
 }
