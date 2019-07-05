@@ -1,6 +1,6 @@
 # Introduction
 
-This is a plugin to use i18next in Fastify.
+This is a plugin to use i18next in Fastify, based on [i18next-express-middleware](https://www.npmjs.com/package/i18next-express-middleware).
 
 # Getting started
 
